@@ -1,7 +1,10 @@
+#include <stdarg.h>
+
 // tokenizer
 // トークンの種類
 typedef enum {
     TK_RESERVED, // 記号
+    TK_IDENT, // 識別子
     TK_NUM, // 整数トークン
     TK_EOF, // 入力の終わりを表すトークン
 } TokenKind;
@@ -20,6 +23,7 @@ struct Token {
 extern Token *token;
 extern char *user_input;
 
+extern void error(char *, ...);
 extern Token *tokenize(char *);
 
 // parser
@@ -29,11 +33,13 @@ typedef enum {
     ND_SUB, // -
     ND_MUL, // *
     ND_DIV, // /
-    ND_NUM, // 整数
     ND_EQ,  // ==
     ND_NEQ, // !=
     ND_LE,  // <
     ND_LEQ, // <=
+    ND_ASSIGN, // =
+    ND_NUM, // 整数
+    ND_LVAR, // 変数
 } NodeKind;
 
 typedef struct Node Node;
@@ -44,9 +50,12 @@ struct Node {
     Node *lhs; // 左辺
     Node *rhs; // 右辺
     int val; // kindがND_NUMの場合のみ使う
+    int offset; // kindがND_NUMの場合のみ使う
+
 };
 
-Node *expr();
+extern Node *code[];
+extern void program();
 
 // generator
 void gen(Node *);
