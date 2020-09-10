@@ -69,6 +69,34 @@ Token *tokenize(char *p) {
             continue;
         }
 
+        if (memcmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
+            cur = new_token(TK_IF, cur, p);
+            p += 2;
+            cur->len = 2;
+            continue;
+        }
+
+        if (memcmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
+            cur = new_token(TK_ELSE, cur, p);
+            p += 4;
+            cur->len = 4;
+            continue;
+        }
+
+        if (memcmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
+            cur = new_token(TK_WHILE, cur, p);
+            p += 5;
+            cur->len = 5;
+            continue;
+        }
+
+        if (memcmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
+            cur = new_token(TK_FOR, cur, p);
+            p += 3;
+            cur->len = 3;
+            continue;
+        }
+
         if (memcmp(p, "==", 2) == 0 ||
                 memcmp(p, "<=", 2) == 0 ||
                 memcmp(p, ">=", 2) == 0 ||
@@ -159,7 +187,7 @@ Token *consume_ident() {
 
 // 次のトークンが期待する種類のトークンであれば，トークンを
 // 1つ読み進めて真を返す．それ以外のときには偽を返す．
-Token *consume_kind(TokenKind kind) {
+bool *consume_kind(TokenKind kind) {
     if (token->kind != kind)
         return false;
     token = token->next;
@@ -313,6 +341,14 @@ Node *stmt() {
         node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+    } else if (consume_kind(TK_IF)) {
+        node = calloc(1, sizeof(Node));
+        node->nexts = calloc(1, sizeof(Node)*3);
+        node->kind = ND_IF;
+        node->nexts[0] = expr();
+        node->nexts[1] = stmt();
+        node->nexts[2] = (consume_kind(TK_ELSE)) ? stmt() : NULL;
+        return node;
     } else {
         node = expr();
     }

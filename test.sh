@@ -37,5 +37,7 @@ assert 3 'foo=3;'
 assert 6 'foo = 1; bar = 2 + 3; foo + bar;'
 assert 0 'return 0;'
 assert 6 'foo = 1; bar = 2 + 3; return foo + bar;'
+assert 2 'a = 0; if (a < 1) a = 2; return a;'
+assert 3 'a = 0; if (a > 1) a = 2; else a = 3; return a;'
 
 echo OK
