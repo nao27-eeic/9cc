@@ -62,6 +62,13 @@ Token *tokenize(char *p) {
             continue;
         }
 
+        if (memcmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
+            cur = new_token(TK_RETURN, cur, p);
+            p += 6;
+            cur->len = 6;
+            continue;
+        }
+
         if (memcmp(p, "==", 2) == 0 ||
                 memcmp(p, "<=", 2) == 0 ||
                 memcmp(p, ">=", 2) == 0 ||
@@ -139,7 +146,7 @@ int expect_number() {
     token = token->next;
     return val;
 }
-//
+
 // 次のトークンが識別子の時には，トークンを1つ読み進めて
 // 識別子のトークンを返す．それ以外の時にはNULLを返す．
 Token *consume_ident() {
@@ -148,6 +155,15 @@ Token *consume_ident() {
     Token *tok = token;
     token = token->next;
     return tok;
+}
+
+// 次のトークンが期待する種類のトークンであれば，トークンを
+// 1つ読み進めて真を返す．それ以外のときには偽を返す．
+Token *consume_kind(TokenKind kind) {
+    if (token->kind != kind)
+        return false;
+    token = token->next;
+    return true;
 }
 
 // 変数を名前で検索する．見つからなかった場合はNULLを返す．
@@ -291,8 +307,19 @@ Node *expr() {
 }
 
 Node *stmt() {
-    Node *node = expr();
-    expect(";");
+    Node *node;
+
+    if (consume_kind(TK_RETURN)) {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_RETURN;
+        node->lhs = expr();
+    } else {
+        node = expr();
+    }
+
+    if (!consume(";")) {
+        error_at(token->str, "';'ではないトークンです");
+    }
     return node;
 }
 
