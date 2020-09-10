@@ -33,49 +33,11 @@ void error_at(char *loc, char *fmt, ...) {
     exit(1);
 }
 
-// 次のトークンが期待している記号の時には，トークンを1つ読み進めて
-// 真を返す．それ以外の時には偽を返す．
-bool consume(char *op) {
-    if (token->kind != TK_RESERVED ||
-            strlen(op) != token->len ||
-            memcmp(token->str, op, token->len))
-        return false;
-    token = token->next;
-    return true;
-}
-
-// 次のトークンが期待している記号の時には，トークンを1つ読み進める．
-// それ以外の場合にはエラーを報告する．
-void expect(char *op) {
-    if (token->kind != TK_RESERVED ||
-            strlen(op) != token->len ||
-            memcmp(token->str, op, token->len))
-        error_at(token->str, "'%s'ではありません", op);
-    token = token->next;
-}
-
-// 次のトークンが数値の場合，トークンを1つ読み進めてその数値を返す．
-// それ以外の場合にはエラーを報告する．
-int expect_number() {
-    if (token->kind != TK_NUM)
-        error_at(token->str, "数ではありません");
-    int val = token->val;
-    token = token->next;
-    return val;
-}
-//
-// 次のトークンが識別子の時には，トークンを1つ読み進めて
-// 識別子のトークンを返す．それ以外の時にはNULLを返す．
-Token *consume_ident() {
-    if(token->kind != TK_IDENT)
-        return NULL;
-    Token *tok = token;
-    token = token->next;
-    return tok;
-}
-
-bool at_eof() {
-    return token->kind == TK_EOF;
+int is_alnum(char c) {
+    return ('a' <= c && c <= 'z') ||
+        ('A' <= c && c <= 'Z') ||
+        ('0' <= c && c <= '9') ||
+        (c == '_');
 }
 
 // 新しいトークンを作成してcurにつなげる
@@ -121,9 +83,13 @@ Token *tokenize(char *p) {
             continue;
         }
 
-        if ('a' <= *p && *p <= 'z') {
+        if (('a' <= *p && *p <= 'z') ||
+                ('A' <= *p && *p <= 'Z') ||
+                (*p == '_')) {
             cur = new_token(TK_IDENT, cur, p++);
-            cur->len = 1;
+            int len = 1;
+            while (is_alnum(*p)) {p++; len++;}
+            cur->len = len;
             continue;
         }
 
@@ -138,6 +104,63 @@ Token *tokenize(char *p) {
 
     new_token(TK_EOF, cur, p);
     return head.next;
+}
+
+// ローカル変数
+LVar *locals = NULL;
+
+// 次のトークンが期待している記号の時には，トークンを1つ読み進めて
+// 真を返す．それ以外の時には偽を返す．
+bool consume(char *op) {
+    if (token->kind != TK_RESERVED ||
+            strlen(op) != token->len ||
+            memcmp(token->str, op, token->len))
+        return false;
+    token = token->next;
+    return true;
+}
+
+// 次のトークンが期待している記号の時には，トークンを1つ読み進める．
+// それ以外の場合にはエラーを報告する．
+void expect(char *op) {
+    if (token->kind != TK_RESERVED ||
+            strlen(op) != token->len ||
+            memcmp(token->str, op, token->len))
+        error_at(token->str, "'%s'ではありません", op);
+    token = token->next;
+}
+
+// 次のトークンが数値の場合，トークンを1つ読み進めてその数値を返す．
+// それ以外の場合にはエラーを報告する．
+int expect_number() {
+    if (token->kind != TK_NUM)
+        error_at(token->str, "数ではありません");
+    int val = token->val;
+    token = token->next;
+    return val;
+}
+//
+// 次のトークンが識別子の時には，トークンを1つ読み進めて
+// 識別子のトークンを返す．それ以外の時にはNULLを返す．
+Token *consume_ident() {
+    if(token->kind != TK_IDENT)
+        return NULL;
+    Token *tok = token;
+    token = token->next;
+    return tok;
+}
+
+// 変数を名前で検索する．見つからなかった場合はNULLを返す．
+LVar *find_lvar(Token *tok) {
+    for (LVar *var = locals; var; var = var->next) {
+        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+            return var;
+    }
+    return NULL;
+}
+
+bool at_eof() {
+    return token->kind == TK_EOF;
 }
 
 Node *code[100];
@@ -171,7 +194,20 @@ Node *primary() {
     if (tok) {
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_LVAR;
-        node->offset = (tok->str[0] - 'a' + 1) * 8;
+
+        LVar *lvar = find_lvar(tok);
+        if (lvar) {
+            node->offset = lvar->offset;
+        } else {
+            lvar = calloc(1, sizeof(LVar));
+            lvar->next = locals;
+            lvar->name = tok->str;
+            lvar->len = tok->len;
+            lvar->offset = (locals) ? locals->offset + 8 : 8;
+            node->offset = lvar->offset;
+            locals = lvar;
+        }
+
         return node;
     }
 

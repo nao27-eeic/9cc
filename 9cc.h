@@ -26,6 +26,17 @@ extern char *user_input;
 extern void error(char *, ...);
 extern Token *tokenize(char *);
 
+typedef struct LVar LVar;
+
+struct LVar {
+    LVar *next; // 次の変数かNULL
+    char *name; // 変数の名前
+    int len;    // 名前の長さ
+    int offset; // rbpからのオフセット
+};
+
+extern LVar *locals;
+
 // parser
 // 抽象構文木のノードの種類
 typedef enum {
@@ -50,7 +61,7 @@ struct Node {
     Node *lhs; // 左辺
     Node *rhs; // 右辺
     int val; // kindがND_NUMの場合のみ使う
-    int offset; // kindがND_NUMの場合のみ使う
+    int offset; // kindがND_LVARの場合のみ使う
 
 };
 
