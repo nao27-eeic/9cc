@@ -343,7 +343,7 @@ Node *stmt() {
         node->lhs = expr();
     } else if (consume_kind(TK_IF)) {
         node = calloc(1, sizeof(Node));
-        node->nexts = calloc(1, sizeof(Node)*3);
+        node->nexts = calloc(3, sizeof(Node));
         node->kind = ND_IF;
         expect("(");
         node->nexts[0] = expr();
@@ -352,13 +352,32 @@ Node *stmt() {
         node->nexts[2] = (consume_kind(TK_ELSE)) ? stmt() : NULL;
         return node;
     } else if (consume_kind(TK_WHILE)) {
-        node = calloc(2, sizeof(Node));
+        node = calloc(1, sizeof(Node));
         node->nexts = calloc(2, sizeof(Node));
         node->kind = ND_WHILE;
         expect("(");
         node->nexts[0] = expr();
         expect(")");
         node->nexts[1] = stmt();
+        return node;
+    } else if (consume_kind(TK_FOR)) {
+        node = calloc(1, sizeof(Node));
+        node->nexts = calloc(2, sizeof(Node));
+        node->kind = ND_FOR;
+        expect("(");
+        if (!consume(";")) {
+            node->nexts[0] = expr();
+            consume(";");
+        }
+        if (!consume(";")) {
+            node->nexts[1] = expr();
+            consume(";");
+        }
+        if (!consume(")")) {
+            node->nexts[2] = expr();
+            expect(")");
+        }
+        node->nexts[3] = stmt();
         return node;
     } else {
         node = expr();
