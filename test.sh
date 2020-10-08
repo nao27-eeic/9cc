@@ -39,5 +39,6 @@ assert 0 'return 0;'
 assert 6 'foo = 1; bar = 2 + 3; return foo + bar;'
 assert 2 'a = 0; if (a < 1) a = 2; return a;'
 assert 3 'a = 0; if (a > 1) a = 2; else a = 3; return a;'
+assert 10 'a = 0; while (a < 10) a = a + 1; return a;'
 
 echo OK

@@ -187,7 +187,7 @@ Token *consume_ident() {
 
 // 次のトークンが期待する種類のトークンであれば，トークンを
 // 1つ読み進めて真を返す．それ以外のときには偽を返す．
-bool *consume_kind(TokenKind kind) {
+bool consume_kind(TokenKind kind) {
     if (token->kind != kind)
         return false;
     token = token->next;
@@ -345,9 +345,20 @@ Node *stmt() {
         node = calloc(1, sizeof(Node));
         node->nexts = calloc(1, sizeof(Node)*3);
         node->kind = ND_IF;
+        expect("(");
         node->nexts[0] = expr();
+        expect(")");
         node->nexts[1] = stmt();
         node->nexts[2] = (consume_kind(TK_ELSE)) ? stmt() : NULL;
+        return node;
+    } else if (consume_kind(TK_WHILE)) {
+        node = calloc(2, sizeof(Node));
+        node->nexts = calloc(2, sizeof(Node));
+        node->kind = ND_WHILE;
+        expect("(");
+        node->nexts[0] = expr();
+        expect(")");
+        node->nexts[1] = stmt();
         return node;
     } else {
         node = expr();
