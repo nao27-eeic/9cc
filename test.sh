@@ -41,5 +41,6 @@ assert 2 'a = 0; if (a < 1) a = 2; return a;'
 assert 3 'a = 0; if (a > 1) a = 2; else a = 3; return a;'
 assert 10 'a = 0; while (a < 10) a = a + 1; return a;'
 assert 55 'a = 0; i = 10; for (i = 1; i <= 10; i = i + 1) a = a + i; return a;'
+assert 10 'a = 0; i = 0; while (i < 10) {a = a + 1; i = i + 1;} return a;'
 
 echo OK

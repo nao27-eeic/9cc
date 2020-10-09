@@ -84,6 +84,18 @@ void gen(Node *node) {
         return;
     }
 
+    if (node->kind == ND_BLOCK) {
+        const int n = vector_size(node->stmts);
+        for (int i = 0; i < n; ++i) {
+            Node *nd = vector_at(node->stmts, i);
+            gen(nd);
+            printf("    pop rax\n");
+        }
+        printf("    push rax\n");
+
+        return;
+    }
+
     switch (node->kind) {
         case ND_NUM:
             printf("    push %d\n", node->val);

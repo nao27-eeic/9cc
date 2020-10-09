@@ -1,6 +1,23 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+// container
+typedef struct {
+    size_t nmemb;
+    size_t nalloc;
+    void **data;
+} Vector;
+
+Vector *vector_init(size_t nmemb);
+void *vector_at(Vector *v, size_t indexc);
+void *vector_front(Vector* v);
+void *vector_back(Vector* v);
+bool vector_empty(Vector* v);
+size_t vector_size(Vector *v);
+void vector_push_back(Vector *v, void *val);
+void vector_pop_back(Vector *v);
+void vector_free(Vector *v);
+
 // tokenizer
 // トークンの種類
 typedef enum {
@@ -61,6 +78,7 @@ typedef enum {
     ND_IF,  // if
     ND_WHILE, // while
     ND_FOR, // for
+    ND_BLOCK, // block
 } NodeKind;
 
 typedef struct Node Node;
@@ -68,12 +86,18 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node {
     NodeKind kind; // ノードの型
-    Node *lhs; // 左辺
-    Node *rhs; // 右辺
-    Node **nexts; // 子ノード
-    int val; // kindがND_NUMの場合のみ使う
-    int offset; // kindがND_LVARの場合のみ使う
-
+    union {
+        struct {
+            Node *lhs; // 左辺
+            Node *rhs; // 右辺
+        };
+        Node **nexts; // 子ノード
+        Vector *stmts; // kindがND_BLOCKの場合のみ使う
+    };
+    union {
+        int val; // kindがND_NUMの場合のみ使う
+        int offset; // kindがND_LVARの場合のみ使う
+    };
 };
 
 extern Node *code[];
@@ -82,19 +106,3 @@ void program(void);
 // generator
 void gen(Node *);
 
-// container
-typedef struct {
-    size_t nmemb;
-    size_t nalloc;
-    void **data;
-} Vector;
-
-Vector *vector_init(size_t nmemb);
-void *vector_at(Vector *v, size_t indexc);
-void *vector_front(Vector* v);
-void *vector_back(Vector* v);
-bool vector_empty(Vector* v);
-size_t vector_size(Vector *v);
-void vector_push_back(Vector *v, void *val);
-void vector_pop_back(Vector *v);
-void vector_free(Vector *v);

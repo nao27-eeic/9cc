@@ -110,6 +110,7 @@ Token *tokenize(char *p) {
         if (*p == '+' || *p == '-' ||
                 *p == '*' || *p == '/' ||
                 *p == '(' || *p == ')' ||
+                *p == '{' || *p == '}' ||
                 *p == '=' || *p == '!' ||
                 *p == '<' || *p == '>' ||
                 *p == ';') {
@@ -224,7 +225,7 @@ Node *new_node_num(int val) {
     return node;
 }
 
-Node *expr();
+Node *expr(void);
 
 Node *primary() {
     // 次のトークンが"("なら，"{" expr ")"のはず
@@ -336,6 +337,18 @@ Node *expr() {
 
 Node *stmt() {
     Node *node;
+
+    if (consume("{")) {
+        node = calloc(1, sizeof(Node));
+        node->stmts = vector_init(0);
+        node->kind = ND_BLOCK;
+        while (!consume("}")) {
+            Node *n = stmt();
+            vector_push_back(node->stmts, n);
+        }
+
+        return node;
+    }
 
     if (consume_kind(TK_RETURN)) {
         node = calloc(1, sizeof(Node));
