@@ -55,8 +55,10 @@ void gen(Node *node) {
         printf("    cmp rax, 0\n");
         printf("    je .L%d\n", n1);
         gen(node->nexts[1]);
+        printf("    pop rax\n");
         printf("    jmp .L%d\n", n0);
         printf(".L%d:\n", n1);
+        printf("    push rax\n");
 
         return;
     }
@@ -72,9 +74,12 @@ void gen(Node *node) {
         printf("    cmp rax, 0\n");
         printf("    je .L%d\n", n1);
         gen(node->nexts[3]);
+        printf("    pop rax\n");
         gen(node->nexts[2]);
+        printf("    pop rax\n");
         printf("    jmp .L%d\n", n0);
         printf(".L%d:\n", n1);
+        printf("    push rax\n");
 
         return;
     }
