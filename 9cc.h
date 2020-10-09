@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stdbool.h>
 
 // tokenizer
 // トークンの種類
@@ -80,3 +81,20 @@ extern void program();
 
 // generator
 void gen(Node *);
+
+// container
+typedef struct {
+    size_t nmemb;
+    size_t nalloc;
+    void **data;
+} Vector;
+
+Vector *vector_init(size_t nmemb);
+void *vector_at(Vector *v, size_t indexc);
+void *vector_front(Vector* v);
+void *vector_back(Vector* v);
+bool vector_empty(Vector* v);
+size_t vector_size(Vector *v);
+void vector_push_back(Vector *v, void *val);
+void vector_pop_back(Vector *v);
+void vector_free(Vector *v);
