@@ -29,8 +29,8 @@ struct Token {
 extern Token *token;
 extern char *user_input;
 
-extern void error(char *, ...);
-extern Token *tokenize(char *);
+void error(char *, ...);
+Token *tokenize(char *);
 
 typedef struct LVar LVar;
 
@@ -77,7 +77,7 @@ struct Node {
 };
 
 extern Node *code[];
-extern void program();
+void program(void);
 
 // generator
 void gen(Node *);
