@@ -2,6 +2,7 @@
 #include <stdbool.h>
 
 // container
+// Vector
 typedef struct {
     size_t nmemb;
     size_t nalloc;
@@ -17,6 +18,28 @@ size_t vector_size(Vector *v);
 void vector_push_back(Vector *v, void *val);
 void vector_pop_back(Vector *v);
 void vector_free(Vector *v);
+
+typedef struct EntryList EntryList;
+
+// Map
+struct EntryList {
+    const char *key;
+    void *val;
+    EntryList *next;
+};
+
+typedef struct {
+    EntryList **root;
+    size_t size;
+    size_t nentry;
+} Map;
+
+Map *map_init();
+bool map_empty(const Map *map);
+size_t map_size(const Map *map);
+void *map_find(const Map *map, const char *key);
+void map_insert(Map *map, const char *key, void *val);
+void map_remove(Map *map, const char *key);
 
 // tokenizer
 // トークンの種類

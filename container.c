@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "9cc.h"
 
+// Vector
 Vector *vector_init(size_t nmemb) {
     Vector *v = calloc(1, sizeof(Vector));
     v->nmemb = nmemb;
@@ -73,6 +74,111 @@ void vector_free(Vector *v) {
     v = NULL;
 }
 
+// Map
+Map *map_init() {
+    Map *map = calloc(1, sizeof(Map));
+    map->size = 4;
+    map->nentry = 0;
+    map->root = calloc(map->size, sizeof(EntryList *));
+    return map;
+}
+
+int _map_hash(const char *key, int maxval) {
+    long h = 0;
+    const long b = 137;
+    for (int i = 0; key[i]; ++i) {
+        h = h * b + key[i];
+        h %= maxval;
+    }
+    return (int)h;
+}
+
+void _map_insert_list(EntryList **root, const char *key, void *val, int hash) {
+    EntryList *head = calloc(1, sizeof(EntryList));
+    head->key = key;
+    head->val = val;
+    head->next = root[hash];
+    root[hash] = head;
+}
+
+void _map_rehash(Map *map, int size) {
+    EntryList **root = calloc(size, sizeof(EntryList *));
+    for (int i = 0; i < map->size; ++i) {
+        EntryList *head = map->root[i];
+        while (head) {
+            int h = _map_hash(head->key, size);
+            _map_insert_list(root, head->key, head->val, h);
+            EntryList *next = head->next;
+            free(head);
+            head = next;
+        }
+    }
+    free(map->root);
+    map->root = root;
+    map->size = size;
+}
+
+bool map_empty(const Map *map) {
+    return map->nentry == 0;
+}
+
+size_t map_size(const Map *map) {
+    return map->nentry;
+}
+
+void *map_find(const Map *map, const char *key) {
+    int h = _map_hash(key, map->size);
+    EntryList *head = map->root[h];
+    while (head) {
+        if ((strcmp(key, head->key) == 0)) {
+            return head->val;
+        }
+        head = head->next;
+    }
+    return NULL;
+}
+
+void map_insert(Map *map, const char *key, void *val) {
+    if ((map->size)>>1 < map->nentry) {
+        _map_rehash(map, (map->size)<<1);
+    }
+
+    void *p = map_find(map, key);
+    if (p) {
+        free(p);
+        p = val;
+    } else {
+        int h = _map_hash(key, map->size);
+        _map_insert_list(map->root, key, val, h);
+        ++(map->nentry);
+    }
+}
+
+void map_remove(Map *map, const char *key) {
+    if ((map->size > 4) && map->nentry < (map->size)>>2)  {
+        _map_rehash(map, (map->size)>>1);
+    }
+
+    int h = _map_hash(key, map->size);
+    EntryList *head = map->root[h];
+    EntryList *prev = NULL;
+    while (head) {
+        if ((strcmp(key, head->key) == 0)) {
+            if(prev){
+                prev->next = head->next;
+            } else {
+                map->root[h] = head->next;
+            }
+            free(head);
+            --(map->nentry);
+            return;
+        }
+        prev = head;
+        head = head->next;
+    }
+}
+
+// test
 void test_vector(int n, int seed) {
     Vector *v = vector_init(0);
 
@@ -108,3 +214,56 @@ void test_vector(int n, int seed) {
 
     printf("ok\n");
 }
+
+void test_gen_randtxt(int length, char *str) {
+    const char *charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWxYZabcdefghijklmnopqrstuvwxyz";
+    for (int i = 0; i < length; ++i) {
+        str[i] = charset[rand() % sizeof(charset)];
+    }
+    str[length] = '\0';
+}
+
+
+void test_map(int n, int seed) {
+    srand(seed);
+    const size_t length = 16;
+    char **randtxts = calloc(n, sizeof(char *));
+    int **arr = calloc(n, sizeof(int *));
+    for (int i = 0; i < n; ++i) {
+        randtxts[i] = calloc(length, sizeof(char));
+        test_gen_randtxt(length, randtxts[i]);
+        arr[i] = calloc(1, sizeof(int));
+        *arr[i] = rand();
+    }
+
+    Map *map = map_init();
+
+    long start, end;
+    start = clock();
+    for (int i = 0; i < n; ++i){
+        map_insert(map, randtxts[i], arr[i]);
+    }
+    end = clock();
+    assert(map_size(map) == n);
+    printf("insert time : %fs\n", (double)(end - start) / CLOCKS_PER_SEC);
+
+    start = clock();
+    for (int i = 0; i < n; ++i){
+        void *p = map_find(map, randtxts[i]);
+        assert(*(int *)p == *arr[i]);
+    }
+    end = clock();
+    printf("find time : %fs\n", (double)(end - start) / CLOCKS_PER_SEC);
+
+    start = clock();
+    for (int i = 0; i < n; ++i){
+        map_remove(map, randtxts[i]);
+    }
+    end = clock();
+    assert(map_empty(map));
+    printf("remove time : %fs\n", (double)(end - start) / CLOCKS_PER_SEC);
+
+    printf("ok\n");
+    return;
+}
+
