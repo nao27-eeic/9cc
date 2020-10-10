@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "9cc.h"
 
 int gen_label_num() {
@@ -91,6 +93,25 @@ void gen(Node *node) {
             gen(nd);
             printf("    pop rax\n");
         }
+        printf("    push rax\n");
+
+        return;
+    }
+
+    if (node->kind == ND_FUNC) {
+        const int n = vector_size(node->args);
+        const char* regs[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+        for (int i = n - 1; i >= 0; --i) {
+            Node *nd = vector_at(node->args, i);
+            gen(nd);
+        }
+        for (int i = 0; i < n; ++i) {
+            printf("    pop %s\n", regs[i]);
+        }
+
+        char *fname = calloc(node->len+1, sizeof(char));
+        memcpy(fname, node->fname, node->len);
+        printf("    call %s\n", fname);
         printf("    push rax\n");
 
         return;

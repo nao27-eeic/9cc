@@ -102,6 +102,7 @@ typedef enum {
     ND_WHILE, // while
     ND_FOR, // for
     ND_BLOCK, // block
+    ND_FUNC, // 関数
 } NodeKind;
 
 typedef struct Node Node;
@@ -116,6 +117,11 @@ struct Node {
         };
         Node **nexts; // 子ノード
         Vector *stmts; // kindがND_BLOCKの場合のみ使う
+        struct{ // kindがND_FUNCの場合のみ使う
+            Vector *args;
+            const char *fname;
+            int len;
+        };
     };
     union {
         int val; // kindがND_NUMの場合のみ使う

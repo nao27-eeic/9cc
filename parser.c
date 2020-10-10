@@ -113,7 +113,7 @@ Token *tokenize(char *p) {
                 *p == '{' || *p == '}' ||
                 *p == '=' || *p == '!' ||
                 *p == '<' || *p == '>' ||
-                *p == ';') {
+                *p == ';' || *p == ',') {
             cur = new_token(TK_RESERVED, cur, p++);
             cur->len = 1;
             continue;
@@ -236,8 +236,26 @@ Node *primary() {
     }
 
     Token *tok = consume_ident();
-    if (tok) {
-        Node *node = calloc(1, sizeof(Node));
+
+    // 数値
+    if (!tok) return new_node_num(expect_number());
+
+    Node *node = calloc(1, sizeof(Node));
+    if (consume("(")) {
+        node->kind = ND_FUNC;
+        node->args = vector_init(0);
+        node->fname = tok->str;
+        node->len = tok->len;
+
+        if (consume(")")) return node;
+
+        do {
+            Node *nd_arg = expr();
+            vector_push_back(node->args, nd_arg);
+        } while (consume(","));
+
+        expect(")");
+    } else {
         node->kind = ND_LVAR;
 
         LVar *lvar = find_lvar(tok);
@@ -252,12 +270,9 @@ Node *primary() {
             node->offset = lvar->offset;
             locals = lvar;
         }
-
-        return node;
     }
 
-    // そうでなければ数値のはず
-    return new_node_num(expect_number());
+    return node;
 }
 
 Node *unary() {
