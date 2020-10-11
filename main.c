@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     printf("    push rbp\n");
     printf("    mov rbp, rsp\n");
     if (locals)
-        printf("    sub rsp, %d\n", locals->offset);
+        printf("    sub rsp, %d\n", ((locals->offset - 1) & ~0xf) + 0x18);
 
     // 先頭の式から順にコード生成
     for (int i = 0; code[i]; i++) {
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
         // 式の評価結果としてスタックに1つの値が残っている
         // はずなので，スタックが溢れないようにポップしておく
-        printf("    pop rax\n");
+        gen_pop("rax");
     }
 
     // エピローグ

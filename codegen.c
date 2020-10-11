@@ -3,9 +3,21 @@
 #include <string.h>
 #include "9cc.h"
 
+bool is_stack_aligned = true;
+
 int gen_label_num() {
     static int num = 0;
     return num++;
+}
+
+void gen_push(const char *reg) {
+    printf("    push %s\n", reg);
+    is_stack_aligned ^= true;
+}
+
+void gen_pop(const char *reg) {
+    printf("    pop %s\n", reg);
+    is_stack_aligned ^= true;
 }
 
 void gen_lval(Node *node) {
@@ -14,22 +26,23 @@ void gen_lval(Node *node) {
 
     printf("    mov rax, rbp\n");
     printf("    sub rax, %d\n", node->offset);
-    printf("    push rax\n");
+    gen_push("rax");
 }
 
 void gen(Node *node) {
     if (node->kind == ND_RETURN) {
         gen(node->lhs);
-        printf("    pop rax\n");
+        gen_pop("rax");
         printf("    mov rsp, rbp\n");
         printf("    pop rbp\n");
+        is_stack_aligned = true;
         printf("    ret\n");
         return;
     }
 
     if (node->kind == ND_IF) {
         gen(node->nexts[0]);
-        printf("    pop rax\n");
+        gen_pop("rax");
         printf("    cmp rax, 0\n");
 
         int n0 = gen_label_num();
@@ -53,14 +66,14 @@ void gen(Node *node) {
 
         printf(".L%d:\n", n0);
         gen(node->nexts[0]);
-        printf("    pop rax\n");
+        gen_pop("rax");
         printf("    cmp rax, 0\n");
         printf("    je .L%d\n", n1);
         gen(node->nexts[1]);
-        printf("    pop rax\n");
+        gen_pop("rax");
         printf("    jmp .L%d\n", n0);
         printf(".L%d:\n", n1);
-        printf("    push rax\n");
+        gen_push("rax");
 
         return;
     }
@@ -72,16 +85,16 @@ void gen(Node *node) {
         gen(node->nexts[0]);
         printf(".L%d:\n", n0);
         gen(node->nexts[1]);
-        printf("    pop rax\n");
+        gen_pop("rax");
         printf("    cmp rax, 0\n");
         printf("    je .L%d\n", n1);
         gen(node->nexts[3]);
-        printf("    pop rax\n");
+        gen_pop("rax");
         gen(node->nexts[2]);
-        printf("    pop rax\n");
+        gen_pop("rax");
         printf("    jmp .L%d\n", n0);
         printf(".L%d:\n", n1);
-        printf("    push rax\n");
+        gen_push("rax");
 
         return;
     }
@@ -91,9 +104,9 @@ void gen(Node *node) {
         for (int i = 0; i < n; ++i) {
             Node *nd = vector_at(node->stmts, i);
             gen(nd);
-            printf("    pop rax\n");
+            gen_pop("rax");
         }
-        printf("    push rax\n");
+        gen_push("rax");
 
         return;
     }
@@ -101,18 +114,26 @@ void gen(Node *node) {
     if (node->kind == ND_FUNC) {
         const int n = vector_size(node->args);
         const char* regs[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+        if (!is_stack_aligned) {
+            printf("    sub rsp, 8\n");
+        }
+
         for (int i = n - 1; i >= 0; --i) {
             Node *nd = vector_at(node->args, i);
             gen(nd);
         }
         for (int i = 0; i < n; ++i) {
-            printf("    pop %s\n", regs[i]);
+            gen_pop(regs[i]);
         }
 
         char *fname = calloc(node->len+1, sizeof(char));
         memcpy(fname, node->fname, node->len);
         printf("    call %s\n", fname);
-        printf("    push rax\n");
+
+        if (!is_stack_aligned) {
+            printf("    add rsp, 8\n");
+        }
+        gen_push("rax");
 
         return;
     }
@@ -120,21 +141,22 @@ void gen(Node *node) {
     switch (node->kind) {
         case ND_NUM:
             printf("    push %d\n", node->val);
+            is_stack_aligned ^= true;
             return;
         case ND_LVAR:
             gen_lval(node);
-            printf("    pop rax\n");
+            gen_pop("rax");
             printf("    mov rax, [rax]\n");
-            printf("    push rax\n");
+            gen_push("rax");
             return;
         case ND_ASSIGN:
             gen_lval(node->lhs);
             gen(node->rhs);
 
-            printf("    pop rdi\n");
-            printf("    pop rax\n");
+            gen_pop("rdi");
+            gen_pop("rax");
             printf("    mov [rax], rdi\n");
-            printf("    push rdi\n");
+            gen_push("rdi");
             return;
     }
 
@@ -142,8 +164,8 @@ void gen(Node *node) {
     gen(node->lhs);
     gen(node->rhs);
 
-    printf("    pop rdi\n");
-    printf("    pop rax\n");
+    gen_pop("rdi");
+    gen_pop("rax");
 
     switch (node->kind) {
         case ND_ADD:
@@ -181,6 +203,6 @@ void gen(Node *node) {
             break;
     }
 
-    printf("    push rax\n");
+    gen_push("rax");
 }
 

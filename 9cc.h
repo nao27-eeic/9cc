@@ -134,4 +134,6 @@ void program(void);
 
 // generator
 void gen(Node *);
+void gen_push(const char *reg);
+void gen_pop(const char *reg);
 
